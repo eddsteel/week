@@ -5,25 +5,23 @@ import org.joda.time.format.DateTimeFormat
 
 trait Remind {
 
-  // TODO: pull in config and do this.
-  //class RemindProvider(config: Config)
+  class RemindProvider(src: String) {
+    new RemindCalendar(src)
+  }
 
-  class RCalendar(calendarSrc: String) extends Calendar {
+  // maybe calendar should just be a container
+  case class RemindCalendar(calendarSrc: String) extends Calendar {
     def getWeekEvents = {
-      Rem getThisWeek(calendarSrc) sortBy (_._1)
+      Rem getThisWeek(calendarSrc)
     }
   }
 
   object Rem extends RemindParser {
     import sys.process._
 
-    def getThisWeek(calendarSrc: String): Vector[(Long, Stream[Event])] = {
-      // TODO: remind with configured source
-      val remind = Seq("rem", "-s+1")
-      val parsed = (remind.lines map parse flatten)
-      val grouped = parsed groupBy (_._1)
-      val flattened = grouped mapValues (stream => stream map (_._2)) 
-      flattened toVector
+    def getThisWeek(calendarSrc: String): WeekList = {
+      val remind = Seq("remind", "-s+1", calendarSrc)
+      fromEventStream(remind.lines flatMap parse)
     }
   }
 }
