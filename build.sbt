@@ -1,9 +1,15 @@
-scalaSource in Compile := file("src")
+name := "week"
 
 scalaSource in Test := file("test")
 
+version := "0.1"
 
 scalaVersion := "2.10.0"
+
+scalaSource in Compile := file("src")
+
+resourceDirectory in Compile := file("resources")
+
 
 libraryDependencies ++= Seq(
   "joda-time" % "joda-time" % "2.2",
