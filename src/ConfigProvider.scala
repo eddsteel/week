@@ -1,27 +1,33 @@
 package com.eddandkrista.week
 
-// TODO: make it use config.
-// TODO: extract Remind out
+import com.typesafe.config._
+
+import collection.JavaConversions._
+import util.Try
+
 trait ConfigProvider extends Week with CalendarProvider with Remind {
 
-  def getCalendars = List(
-    new RCalendar("")
-  )
+  val fallback = ConfigFactory.load
+  val home = System.getProperty("user.home")
+  val userConfig = s"${home}/.config/weekrc"
+  val user = Try(ConfigFactory.parseReader(new java.io.FileReader(userConfig))).toOption
+
+  val config = user.getOrElse(ConfigFactory.empty()).withFallback(fallback).resolve
+  
+  def configToCalendar(config: Config) = config.getString("type") match {
+    case "remind" =>
+      new Some(RemindCalendar(config.getString("src")))
+
+    case t =>
+      println(s"Unknown type: $t")
+      None
+  }
+
+  def getCalendars = {
+    val configList = ((config getConfigList("calendars")) toList)
+    if (configList isEmpty) println(s"Please define some calendars in ${userConfig}")
+
+    (configList map configToCalendar) flatten
+  }
 }
 
-
-//TODO -> test
-trait DummyProvider extends Week with CalendarProvider {
-  def getCalendars = List(
-    new Calendar {
-      def getWeekEvents = week zip Vector(
-        Nil, Nil, Nil, Nil, Nil, Nil,
-        List(event("Eat food", Some(2500L)))
-      )
-    }
-  )
-
-  private def week = ((0 until 7) map (_ * day)) toVector
-
-  private val day = (1000 * 60 * 60 * 24) toLong
-}
