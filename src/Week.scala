@@ -32,9 +32,20 @@ trait Week {
     duration: Option[Int] = None) =
       new Event(description, startTime, duration)
 
-  def merge(events: WeekList, moreEvents: WeekList) = (
-    (events zip moreEvents) map {
-      case ((d, es), (_, fs)) => (d, (es ++ fs) sorted)
-    }
-  ) sorted
+  def toEventStream(week: WeekList): Stream[(Long, Week#Event)] = week match {
+    case Seq() => Stream()
+    case Seq((day, events), rest @ _*) =>
+      ((events toStream) map {event: Week#Event => day -> event}) #:::
+        toEventStream(rest toVector)
+  }
+
+  def fromEventStream(events: Stream[(Long, Week#Event)]): WeekList = {
+    val grouped = events groupBy (_._1)
+    val flattened = grouped mapValues (stream => stream map (_._2))
+
+    ((flattened toVector): WeekList) sorted
+  }
+
+  def merge(week1: WeekList, week2: WeekList) =
+    fromEventStream(toEventStream(week1) union toEventStream(week2))
 }
